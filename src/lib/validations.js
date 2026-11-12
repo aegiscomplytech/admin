@@ -51,38 +51,43 @@ const requiredText = (label, min, max) =>
 const emailField = (label) =>
   z.string().trim().min(1, `${label} is required`).max(255, `${label} is too long`).pipe(z.email("Enter a valid email address"))
 
-export const companyRegistrationSchema = z
-  .object({
-    legal_name: requiredText("Company legal name", 2, 255),
-    business_email: emailField("Business email"),
-    contact_name: requiredText("Contact person name", 2, 150),
-    contact_email: emailField("Contact email"),
-    password: z
-      .string()
-      .max(128, "Password must be at most 128 characters")
-      .refine((value) => PASSWORD_RULES.every((rule) => rule.test(value)), {
-        message: "Password does not meet all the requirements",
-      }),
-    confirm_password: z.string().min(1, "Please confirm the password"),
-    phone: z
-      .string()
-      .trim()
-      .min(1, "Phone number is required")
-      .max(30, "Phone number is too long")
-      .regex(/^\+?[\d\s\-()]+$/, "Enter a valid phone number")
-      .refine((value) => {
-        const digits = value.replace(/\D/g, "").length
-        return digits >= 7 && digits <= 15
-      }, "Enter a valid phone number"),
-    website: z.string().trim().max(255, "Website is too long").optional(),
-    address: z.string().trim().max(1000, "Address is too long").optional(),
-  })
-  .refine((data) => data.password === data.confirm_password, {
-    path: ["confirm_password"],
-    message: "Passwords do not match",
-  })
+// No password: the system creates the Admin ID + temporary password and emails them.
+export const companyRegistrationSchema = z.object({
+  legal_name: requiredText("Company legal name", 2, 255),
+  business_email: emailField("Business email"),
+  contact_name: requiredText("Contact person name", 2, 150),
+  contact_email: emailField("Contact email"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Phone number is required")
+    .max(30, "Phone number is too long")
+    .regex(/^\+?[\d\s\-()]+$/, "Enter a valid phone number")
+    .refine((value) => {
+      const digits = value.replace(/\D/g, "").length
+      return digits >= 7 && digits <= 15
+    }, "Enter a valid phone number"),
+  website: z.string().trim().max(255, "Website is too long").optional(),
+  address: z.string().trim().max(1000, "Address is too long").optional(),
+})
 
 /** @typedef {z.infer<typeof companyRegistrationSchema>} CompanyRegistrationInput */
+
+/** Same format as the backend (security/credentials.service.ts), e.g. AEG-482913. */
+export const ADMIN_ID_PATTERN = /^AEG-[1-9]\d{5}$/i
+
+/** Company sign in: Admin ID (from the welcome email) or email address, plus password. */
+export const companyLoginSchema = z.object({
+  identifier: z
+    .string()
+    .trim()
+    .min(1, "Admin ID or email is required")
+    .refine(
+      (value) => ADMIN_ID_PATTERN.test(value) || z.email().safeParse(value).success,
+      "Enter your Admin ID (e.g. AEG-123456) or your email address"
+    ),
+  password: z.string().min(1, "Password is required"),
+})
 
 // ---------- Plans (same rules as backend plans.validation.ts) ----------
 

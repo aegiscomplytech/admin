@@ -17,7 +17,7 @@ import { ORGANIZATION_ACTIONS, REGISTRATION_STATUS_LABELS } from "@/lib/organiza
 import { cn, formatDateTime } from "@/lib/utils"
 
 /** Order of the action buttons; only the ones the backend allows are shown. */
-const ACTION_ORDER = ["approve", "reject", "reactivate", "suspend", "deactivate"]
+const ACTION_ORDER = ["approve", "reject", "reactivate", "suspend", "deactivate", "reset_credentials"]
 
 function Row({ label, children }) {
   return (
@@ -156,9 +156,26 @@ export function OrganizationDetails() {
         </Section>
 
         <div className="grid content-start gap-4">
-          <Section title="Contact (owner)">
+          <Section title="Company admin (owner)">
             <Row label="Name">{org.owner?.full_name}</Row>
             <Row label="Email">{org.owner?.email}</Row>
+            <Row label="Admin ID">
+              {org.owner?.admin_id && <span className="font-mono" data-testid="owner-admin-id">{org.owner.admin_id}</span>}
+            </Row>
+            <Row label="Password">
+              {org.owner && (
+                <span className="flex flex-wrap items-center gap-2" data-testid="owner-password-status">
+                  {org.owner.must_change_password ? (
+                    <Badge variant="outline">Temporary — must be changed at next sign-in</Badge>
+                  ) : (
+                    <Badge variant="secondary">Set by the company</Badge>
+                  )}
+                  {!org.owner.must_change_password && org.owner.password_changed_at && (
+                    <span className="text-xs font-normal text-muted-foreground">changed {formatDateTime(org.owner.password_changed_at)}</span>
+                  )}
+                </span>
+              )}
+            </Row>
             <Row label="Email verification">
               {org.owner && (
                 <span className="flex flex-wrap items-center gap-2">

@@ -7,14 +7,7 @@ const nextConfig = {
   },
   cacheComponents: true,
   partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
+  // Tailwind CSS is processed by PostCSS (postcss.config.mjs), which works with webpack and Turbopack.
   // Forward /api/* to the Express backend so the browser talks to one origin
   // and the HTTP-only session cookie belongs to this admin panel.
   async rewrites() {

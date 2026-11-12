@@ -2,27 +2,23 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useForm, useWatch } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Building2Icon, CheckIcon, CircleIcon, Loader2Icon, MailCheckIcon } from "lucide-react"
+import { Building2Icon, Loader2Icon, MailCheckIcon } from "lucide-react"
 
 import { FormAlert, FormField } from "@/components/forms/form-field"
-import { PasswordInput } from "@/components/forms/password-input"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { useRegisterCompany, useResendVerification } from "@/hooks/use-company"
+import { useRegisterCompany } from "@/hooks/use-company"
 import { COMPANY_LOGIN_PATH } from "@/lib/auth"
-import { cn } from "@/lib/utils"
-import { PASSWORD_RULES, companyRegistrationSchema } from "@/lib/validations"
+import { companyRegistrationSchema } from "@/lib/validations"
 
 const EMPTY = {
   legal_name: "",
   business_email: "",
   contact_name: "",
   contact_email: "",
-  password: "",
-  confirm_password: "",
   phone: "",
   website: "",
   address: "",
@@ -38,9 +34,7 @@ const FIELDS = [
   ["contact_email", "Contact person email", "email", "email", "priya@acme.com"],
 ]
 
-function RegistrationSuccess({ email, emailSent }) {
-  const resend = useResendVerification()
-
+function RegistrationSuccess({ email }) {
   return (
     <Card>
       <CardHeader className="text-center">
@@ -51,45 +45,36 @@ function RegistrationSuccess({ email, emailSent }) {
         <CardDescription>Thank you for registering your company.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 text-sm">
-        <ol className="grid gap-3">
+        <ol className="grid gap-3" data-testid="registration-next-steps">
           <li className="rounded-lg border p-3">
-            <p className="font-medium">1. Verify your email</p>
+            <p className="font-medium">1. Check your email</p>
             <p className="text-muted-foreground">
-              {emailSent ? (
-                <>
-                  We sent a verification link to <span className="font-medium text-foreground">{email}</span>. Open it to
-                  confirm your email address. The link is valid for 24 hours.
-                </>
-              ) : (
-                <>We couldn&apos;t send the verification email right now. Please use the button below to try again.</>
-              )}
+              We sent your <span className="font-medium text-foreground">Admin ID</span> and a{" "}
+              <span className="font-medium text-foreground">temporary password</span> to{" "}
+              <span className="font-medium text-foreground">{email}</span>.
             </p>
           </li>
           <li className="rounded-lg border p-3">
-            <p className="font-medium">2. Wait for approval</p>
+            <p className="font-medium">2. Sign in and set your password</p>
             <p className="text-muted-foreground">
-              After you verify your email, our team reviews your registration. You can sign in at any time to check its
-              status. Company features become available once your company is approved.
+              Sign in with your Admin ID (or email) and the temporary password. You will be asked to choose your own
+              password straight away.
+            </p>
+          </li>
+          <li className="rounded-lg border p-3">
+            <p className="font-medium">3. Wait for approval</p>
+            <p className="text-muted-foreground">
+              Our team reviews your registration. You can sign in at any time to check its status. Company features become
+              available once your company is approved.
             </p>
           </li>
         </ol>
-
-        {resend.isSuccess && (
-          <p role="status" className="rounded-lg bg-muted px-3 py-2 text-muted-foreground">
-            {resend.data.message}
-          </p>
-        )}
-        <FormAlert>{resend.error?.message}</FormAlert>
-
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Button variant="outline" onClick={() => resend.mutate(email)} disabled={resend.isPending}>
-            {resend.isPending && <Loader2Icon className="animate-spin" />}
-            Resend verification email
-          </Button>
-          <Link href={COMPANY_LOGIN_PATH} className={buttonVariants()}>
-            Sign in to check status
-          </Link>
-        </div>
+        <Link href={COMPANY_LOGIN_PATH} className={buttonVariants({ size: "lg" })}>
+          Go to sign in
+        </Link>
+        <p className="text-center text-xs text-muted-foreground">
+          No email after a few minutes? Check your spam folder, or contact the Aegis support team.
+        </p>
       </CardContent>
     </Card>
   )
@@ -97,20 +82,18 @@ function RegistrationSuccess({ email, emailSent }) {
 
 export default function RegisterPage() {
   const register = useRegisterCompany()
-  const [result, setResult] = useState(null)
+  const [sentTo, setSentTo] = useState(null)
 
   const {
     register: field,
     handleSubmit,
     setError,
-    control,
     formState: { errors },
   } = useForm({ resolver: zodResolver(companyRegistrationSchema), defaultValues: EMPTY })
-  const password = useWatch({ control, name: "password" })
 
-  const onSubmit = ({ confirm_password: _confirm, ...values }) =>
+  const onSubmit = (values) =>
     register.mutate(values, {
-      onSuccess: (response) => setResult({ email: values.contact_email, emailSent: response.data.verification_email_sent }),
+      onSuccess: (response) => setSentTo(response.data.credentials_sent_to ?? values.contact_email),
       onError: (error) => {
         // Field errors from the backend (duplicates, validation) go next to the field
         error.errors?.forEach?.(({ field: name, message }) => {
@@ -119,7 +102,7 @@ export default function RegisterPage() {
       },
     })
 
-  if (result) return <RegistrationSuccess email={result.email} emailSent={result.emailSent} />
+  if (sentTo) return <RegistrationSuccess email={sentTo} />
 
   const bannerError = register.error && !register.error.errors ? register.error.message : null
 
@@ -130,7 +113,10 @@ export default function RegisterPage() {
           <Building2Icon className="size-5" />
         </span>
         <CardTitle className="text-xl">Register your company</CardTitle>
-        <CardDescription>Create your company account. Registrations are reviewed before activation.</CardDescription>
+        <CardDescription>
+          Your company admin login (Admin ID and temporary password) is emailed to the contact person. Registrations are
+          reviewed before activation.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4">
@@ -158,37 +144,6 @@ export default function RegisterPage() {
               aria-invalid={!!errors.address}
               className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
               {...field("address")}
-            />
-          </FormField>
-
-          <FormField id="password" label="Password" error={errors.password?.message}>
-            <PasswordInput
-              id="password"
-              autoComplete="new-password"
-              aria-invalid={!!errors.password}
-              aria-describedby={errors.password ? "password-error" : undefined}
-              {...field("password")}
-            />
-            <ul className="grid gap-1 text-xs" aria-label="Password requirements">
-              {PASSWORD_RULES.map((rule) => {
-                const passed = rule.test(password ?? "")
-                return (
-                  <li key={rule.label} className={cn("flex items-center gap-1.5", passed ? "text-foreground" : "text-muted-foreground")}>
-                    {passed ? <CheckIcon className="size-3.5" /> : <CircleIcon className="size-3" />}
-                    {rule.label}
-                  </li>
-                )
-              })}
-            </ul>
-          </FormField>
-
-          <FormField id="confirm_password" label="Confirm password" error={errors.confirm_password?.message}>
-            <PasswordInput
-              id="confirm_password"
-              autoComplete="new-password"
-              aria-invalid={!!errors.confirm_password}
-              aria-describedby={errors.confirm_password ? "confirm_password-error" : undefined}
-              {...field("confirm_password")}
             />
           </FormField>
 

@@ -35,3 +35,8 @@ export async function getCompanyMe() {
 export async function getRegistrationStatus() {
   return (await apiClient("/v1/organizations/registration-status")).data
 }
+
+/** { current_password, new_password, confirm_password } — required after a temporary password. */
+export async function companyChangePassword(input) {
+  return apiClient("/v1/auth/change-password", { method: "POST", body: input })
+}

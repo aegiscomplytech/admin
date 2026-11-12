@@ -11,6 +11,8 @@ const ACTION_LABELS = {
   COMPANY_SUSPENDED: "Company suspended",
   COMPANY_REACTIVATED: "Company reactivated",
   COMPANY_DEACTIVATED: "Company deactivated",
+  COMPANY_PASSWORD_CHANGED: "Company password changed",
+  COMPANY_CREDENTIALS_RESET: "Company login reset",
   PLAN_CREATED: "Plan created",
   PLAN_UPDATED: "Plan updated",
   PLAN_ACTIVATED: "Plan activated",

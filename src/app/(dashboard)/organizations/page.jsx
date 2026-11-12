@@ -62,7 +62,7 @@ export default function OrganizationsPage() {
               <Input
                 type="search"
                 aria-label="Search companies"
-                placeholder="Search by company name or business email"
+                placeholder="Search by company name, business email or Admin ID"
                 className="pl-8"
                 value={search}
                 maxLength={100}
@@ -164,6 +164,7 @@ export default function OrganizationsPage() {
                             <div className="grid">
                               <span>{org.owner.full_name}</span>
                               <span className="text-xs text-muted-foreground">{org.owner.email}</span>
+                              {org.owner.admin_id && <span className="font-mono text-xs text-muted-foreground">{org.owner.admin_id}</span>}
                             </div>
                           ) : (
                             "—"

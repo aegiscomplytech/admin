@@ -20,7 +20,8 @@ export const STATUS_BADGE = {
 }
 
 export const REGISTRATION_STATUS_LABELS = {
-  pending_email_verification: "Waiting for email verification",
+  // The company confirms its email by signing in with the emailed Admin ID + temporary password
+  pending_email_verification: "Waiting for first sign-in",
   pending_approval: "Waiting for approval",
   approved: "Approved",
   rejected: "Rejected",
@@ -73,5 +74,16 @@ export const ORGANIZATION_ACTIONS = {
     variant: "destructive",
     reason: "optional",
     reasonLabel: "Reason (optional, kept in the activity log)",
+  },
+  reset_credentials: {
+    label: "Reset login credentials",
+    title: "Reset this company's login?",
+    description:
+      "A new temporary password is emailed to the company admin (you will not see it). The current password stops working, all of their sessions are signed out, and they must choose a new password at the next sign-in.",
+    confirm: "Reset and email new password",
+    variant: "outline",
+    reason: "required",
+    reasonLabel: "Reason (kept in the activity log)",
+    reasonPlaceholder: "Company admin lost their password (requested by phone).",
   },
 }

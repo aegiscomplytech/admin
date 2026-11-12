@@ -23,6 +23,11 @@ export async function rejectOrganization(id, reason) {
   return apiClient(`${BASE}/${encodeURIComponent(id)}/reject`, { method: "PATCH", body: { reason } })
 }
 
+/** New temporary password, emailed to the company admin only. Response data = company details. */
+export async function resetCredentials(id, reason) {
+  return apiClient(`${BASE}/${encodeURIComponent(id)}/reset-credentials`, { method: "POST", body: { reason } })
+}
+
 /** status: "suspended" | "approved" (reactivate) | "deactivated" */
 export async function changeOrganizationStatus(id, status, reason) {
   return apiClient(`${BASE}/${encodeURIComponent(id)}/status`, { method: "PATCH", body: { status, reason } })
