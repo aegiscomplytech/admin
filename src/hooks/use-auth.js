@@ -9,6 +9,14 @@ import * as authService from "@/services/auth.service"
 export const CURRENT_ADMIN_QUERY_KEY = ["auth", "me"]
 
 /**
+ * Drops all cached admin data (dashboard, activity logs, ...) except the auth state,
+ * so nothing from a previous session is shown after logging in or out.
+ */
+function clearAdminData(queryClient) {
+  queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== "auth" })
+}
+
+/**
  * The logged-in admin, loaded from GET /me.
  * `data` is the admin, `null` when logged out, `undefined` while loading.
  * Refetches when the window regains focus, so it stays in sync with the backend session.
@@ -29,7 +37,10 @@ export function useLogin() {
     mutationFn: authService.login,
     // A 401 here means wrong credentials, not an expired session
     meta: { ignoreUnauthorized: true },
-    onSuccess: (admin) => queryClient.setQueryData(CURRENT_ADMIN_QUERY_KEY, admin),
+    onSuccess: (admin) => {
+      clearAdminData(queryClient)
+      queryClient.setQueryData(CURRENT_ADMIN_QUERY_KEY, admin)
+    },
   })
 }
 
@@ -42,6 +53,7 @@ export function useLogout() {
     meta: { ignoreUnauthorized: true },
     // Even if the request fails, forget the admin locally and go to login
     onSettled: () => {
+      clearAdminData(queryClient)
       queryClient.setQueryData(CURRENT_ADMIN_QUERY_KEY, null)
       router.replace(LOGIN_PATH)
     },
@@ -49,5 +61,14 @@ export function useLogout() {
 }
 
 export function useChangePassword() {
-  return useMutation({ mutationFn: authService.changePassword })
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: authService.changePassword,
+    // The change is a new activity record, so dashboard counts and logs are out of date
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] })
+      queryClient.invalidateQueries({ queryKey: ["audit-logs"] })
+    },
+  })
 }

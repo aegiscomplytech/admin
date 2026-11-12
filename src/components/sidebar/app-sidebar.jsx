@@ -26,7 +26,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { NAV_ITEMS } from "@/components/sidebar/nav-items"
+import { NAV_GROUPS, isNavItemActive } from "@/components/sidebar/nav-items"
 import { useCurrentAdmin, useLogout } from "@/hooks/use-auth"
 import { formatRole } from "@/lib/auth"
 
@@ -88,6 +88,7 @@ function UserMenu() {
 export function AppSidebar() {
   const pathname = usePathname()
   const { isMobile, setOpenMobile } = useSidebar()
+  const logout = useLogout()
 
   return (
     <Sidebar>
@@ -108,26 +109,36 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Account</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV_ITEMS.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    isActive={pathname === item.href}
-                    render={<Link href={item.href} />}
-                    // Close the slide-out menu after picking a page on phones
-                    onClick={() => isMobile && setOpenMobile(false)}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {NAV_GROUPS.map((group, index) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      isActive={isNavItemActive(item, pathname)}
+                      render={<Link href={item.href} />}
+                      // Close the slide-out menu after picking a page on phones
+                      onClick={() => isMobile && setOpenMobile(false)}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+                {index === NAV_GROUPS.length - 1 && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => logout.mutate()} disabled={logout.isPending}>
+                      <LogOutIcon />
+                      <span>{logout.isPending ? "Logging out…" : "Logout"}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter>
