@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect } from "react"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Building2Icon, Loader2Icon, LogOutIcon } from "lucide-react"
+import { Building2Icon, KeyRoundIcon, Loader2Icon, LogOutIcon } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { useCompanyLogout, useCompanyMe } from "@/hooks/use-company"
-import { COMPANY_LOGIN_PATH } from "@/lib/auth"
+import { COMPANY_CHANGE_PASSWORD_PATH, COMPANY_LOGIN_PATH } from "@/lib/auth"
 
 /**
  * Layout + guard for the company area. Separate from the Super Admin layout:
@@ -18,11 +19,17 @@ export default function CompanyLayout({ children }) {
   const router = useRouter()
   const pathname = usePathname()
 
+  // A temporary password (new registration or Super Admin reset) must be changed first;
+  // the backend also refuses every other company API until then.
+  const onPasswordPage = pathname === COMPANY_CHANGE_PASSWORD_PATH
+  const mustChangePassword = Boolean(me?.user.must_change_password) && !onPasswordPage
+
   useEffect(() => {
     if (me === null) router.replace(`${COMPANY_LOGIN_PATH}?next=${encodeURIComponent(pathname)}`)
-  }, [me, pathname, router])
+    else if (mustChangePassword) router.replace(COMPANY_CHANGE_PASSWORD_PATH)
+  }, [me, mustChangePassword, pathname, router])
 
-  if (isPending || me === null || isError) {
+  if (isPending || me === null || isError || mustChangePassword) {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center gap-3 p-6 text-sm text-muted-foreground">
         {isError ? (
@@ -50,8 +57,17 @@ export default function CompanyLayout({ children }) {
         </span>
         <div className="grid min-w-0 flex-1 leading-tight">
           <span className="truncate text-sm font-medium">{me.organization.display_name ?? me.organization.legal_name}</span>
-          <span className="truncate text-xs text-muted-foreground">{me.user.full_name}</span>
+          <span className="truncate text-xs text-muted-foreground">
+            {me.user.full_name}
+            {me.user.admin_id && <span data-testid="admin-id"> · {me.user.admin_id}</span>}
+          </span>
         </div>
+        {!me.user.must_change_password && !onPasswordPage && (
+          <Link href={COMPANY_CHANGE_PASSWORD_PATH} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <KeyRoundIcon />
+            <span className="max-sm:sr-only">Change password</span>
+          </Link>
+        )}
         <Button variant="outline" size="sm" onClick={() => logout.mutate()} disabled={logout.isPending}>
           <LogOutIcon />
           {logout.isPending ? "Signing out…" : "Sign out"}

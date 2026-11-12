@@ -22,7 +22,7 @@ export function useOrganization(id) {
 }
 
 /**
- * approve / reject / suspend / reactivate / deactivate.
+ * approve / reject / suspend / reactivate / deactivate / reset_credentials.
  * `variables`: { id, action, reason? }. Refreshes company lists, details and activity logs afterwards.
  */
 export function useOrganizationAction() {
@@ -41,6 +41,8 @@ export function useOrganizationAction() {
           return service.changeOrganizationStatus(id, "approved", reason)
         case "deactivate":
           return service.changeOrganizationStatus(id, "deactivated", reason)
+        case "reset_credentials":
+          return service.resetCredentials(id, reason)
         default:
           throw new Error(`Unknown action: ${action}`)
       }

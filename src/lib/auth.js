@@ -17,6 +17,8 @@ export const PUBLIC_PATHS = ["/login", "/forgot-password", "/verify-otp", "/regi
 export const COMPANY_SESSION_COOKIE_NAME = "company_session";
 export const COMPANY_LOGIN_PATH = "/company/login";
 export const COMPANY_HOME_PATH = "/company";
+/** Where a company admin with a temporary password must go first. */
+export const COMPANY_CHANGE_PASSWORD_PATH = "/company/change-password";
 
 /** The company area (/company and below, except the company login page). */
 export function isCompanyPath(pathname) {

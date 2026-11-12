@@ -2,38 +2,18 @@
 
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { CheckIcon, CircleIcon, Loader2Icon } from "lucide-react"
+import { Loader2Icon } from "lucide-react"
 
 import { FormAlert, FormField } from "@/components/forms/form-field"
 import { PasswordInput } from "@/components/forms/password-input"
+import { PasswordRules } from "@/components/forms/password-rules"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/toast"
 import { useChangePassword } from "@/hooks/use-auth"
-import { cn } from "@/lib/utils"
-import { PASSWORD_RULES, changePasswordSchema } from "@/lib/validations"
+import { changePasswordSchema } from "@/lib/validations"
 
 const EMPTY_FORM = { current_password: "", new_password: "", confirm_password: "" }
-
-/** Live checklist of the password rules under the "New password" field. */
-function PasswordRules({ value }) {
-  return (
-    <ul className="grid gap-1 text-xs" aria-label="Password requirements">
-      {PASSWORD_RULES.map((rule) => {
-        const passed = rule.test(value)
-        return (
-          <li
-            key={rule.label}
-            className={cn("flex items-center gap-1.5", passed ? "text-foreground" : "text-muted-foreground")}
-          >
-            {passed ? <CheckIcon className="size-3.5" /> : <CircleIcon className="size-3" />}
-            {rule.label}
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
 
 export default function ChangePasswordPage() {
   const changePassword = useChangePassword()

@@ -59,3 +59,13 @@ export function useRegisterCompany() {
 export function useResendVerification() {
   return useMutation({ mutationFn: service.resendVerification, meta: { ignoreUnauthorized: true } })
 }
+
+/** After a successful change, the session no longer needs a password change: reload "me". */
+export function useCompanyChangePassword() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: service.companyChangePassword,
+    meta: { ignoreUnauthorized: true },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["company"], refetchType: "all" }),
+  })
+}
