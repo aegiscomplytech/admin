@@ -10,11 +10,13 @@ import {
   GitBranchIcon,
   InboxIcon,
   KeyIcon,
+  LayoutDashboardIcon,
   LockIcon,
   ScaleIcon,
   SearchIcon,
   ShieldAlertIcon,
   ShieldCheckIcon,
+  UserRoundIcon,
   UsersIcon,
 } from "lucide-react"
 
@@ -36,6 +38,8 @@ export const MODULE_ICONS = {
   key: KeyIcon,
   users: UsersIcon,
   scale: ScaleIcon,
+  "layout-dashboard": LayoutDashboardIcon,
+  "user-round": UserRoundIcon,
 }
 
 export function ModuleIcon({ name, className = "size-4" }) {

@@ -5,9 +5,14 @@ import {
   CreditCardIcon,
   HistoryIcon,
   KeyRoundIcon,
+  ListTreeIcon,
   LayoutDashboardIcon,
   PackageIcon,
+  ShieldCheckIcon,
+  UserCheckIcon,
+  UserCogIcon,
   UserIcon,
+  UsersIcon,
 } from "lucide-react"
 
 /**
@@ -32,9 +37,39 @@ export const NAV_GROUPS = [
     ],
   },
   {
-    label: "Plans & Modules",
+    label: "User Management",
+    items: [
+      {
+        title: "Users",
+        href: "/users",
+        icon: UsersIcon,
+        match: (pathname) => pathname === "/users" || /^\/users\/(?!pending$)[^/]+$/.test(pathname),
+      },
+      { title: "Pending Requests", href: "/users/pending", icon: UserCheckIcon },
+    ],
+  },
+  {
+    label: "Module Access",
     items: [
       { title: "Modules", href: "/modules", icon: BlocksIcon },
+      {
+        title: "Menu Registry",
+        href: "/menu-registry",
+        icon: ListTreeIcon,
+        match: (pathname) => pathname === "/menu-registry" || pathname.startsWith("/menu-registry/"),
+      },
+      {
+        title: "Company Access",
+        href: "/company-access",
+        icon: ShieldCheckIcon,
+        match: (pathname) => pathname === "/company-access" || pathname.startsWith("/company-access/"),
+      },
+      { title: "Roles & Permissions", href: "/roles", icon: UserCogIcon, match: (pathname) => pathname === "/roles" || pathname.startsWith("/roles/") },
+    ],
+  },
+  {
+    label: "Plans & Subscriptions",
+    items: [
       { title: "Plans", href: "/plans", icon: PackageIcon, match: (pathname) => pathname === "/plans" || pathname.startsWith("/plans/") },
       {
         title: "Subscriptions",

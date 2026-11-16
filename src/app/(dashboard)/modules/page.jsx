@@ -3,6 +3,8 @@
 import { useId, useState } from "react"
 import { BlocksIcon, Loader2Icon, PencilIcon, PlusIcon, RefreshCwIcon, SearchIcon } from "lucide-react"
 
+import { ConfirmationDialog } from "@/components/access/confirmation-dialog"
+import { ModuleDetailsSheet } from "@/components/access/module-details-sheet"
 import { PlanStatusBadge } from "@/components/billing/badges"
 import { PaginationBar } from "@/components/data-tables/pagination-bar"
 import { FormAlert, FormField } from "@/components/forms/form-field"
@@ -23,14 +25,55 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "@/components/ui/toast"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { useDeleteModule, usePermissions } from "@/hooks/use-access"
 import { useModuleList, useSaveModule, useSetModuleStatus } from "@/hooks/use-modules"
 import { cn } from "@/lib/utils"
 
-const COLUMNS = ["Module", "Code", "Order", "Used in", "Status", "Actions"]
+const COLUMNS = ["Module", "Module key", "Total pages", "Used in", "Status", "Actions"]
 const fieldClass =
   "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
 
 /** Create (module = null) or edit a module. */
+/** Offered by a new module unless changed (the backend uses the same default). */
+const DEFAULT_PERMISSIONS = ["view", "create", "edit", "delete", "export"]
+
+/**
+ * The permissions a module offers: what a company's custom roles can be given in it (e.g. Reports: view + export).
+ * "view" is always required.
+ */
+function ModulePermissionsField({ value, onChange, error, idPrefix }) {
+  const { data: permissions, isPending, isError } = usePermissions()
+  const toggle = (key) => onChange(value.includes(key) ? value.filter((k) => k !== key) : [...value, key])
+  return (
+    <fieldset className="grid gap-1.5" data-testid="module-permissions-field">
+      <legend className="text-sm font-medium">Permissions this module offers</legend>
+      <p className="text-xs text-muted-foreground">Company Admins can only give these in their roles. View is always required.</p>
+      {isPending && <Skeleton className="h-8" />}
+      {isError && <p className="text-xs text-destructive">Couldn&apos;t load the permissions.</p>}
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {permissions?.map((p) => (
+          <label key={p.permission_key} htmlFor={`${idPrefix}-perm-${p.permission_key}`} className="flex items-center gap-2 text-sm" title={p.description}>
+            <input
+              id={`${idPrefix}-perm-${p.permission_key}`}
+              type="checkbox"
+              className="size-4 accent-primary"
+              checked={value.includes(p.permission_key)}
+              disabled={p.permission_key === "view"}
+              onChange={() => toggle(p.permission_key)}
+            />
+            {p.permission_name}
+          </label>
+        ))}
+      </div>
+      {error && (
+        <p role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      )}
+    </fieldset>
+  )
+}
+
 function ModuleFormDialog({ module, open, onClose }) {
   const prefix = useId()
   const save = useSaveModule()
@@ -41,6 +84,7 @@ function ModuleFormDialog({ module, open, onClose }) {
     icon: module?.icon ?? "",
     displayOrder: String(module?.display_order ?? 0),
     isActive: module?.is_active ?? true,
+    permissions: module?.permissions?.length ? module.permissions : DEFAULT_PERMISSIONS,
   }))
   const [errors, setErrors] = useState({})
   const set = (key) => (event) => {
@@ -64,6 +108,7 @@ function ModuleFormDialog({ module, open, onClose }) {
       icon: values.icon || null,
       displayOrder: Number(values.displayOrder),
       isActive: values.isActive,
+      permissions: values.permissions.includes("view") ? values.permissions : ["view", ...values.permissions],
       ...(!module && { code: values.code.trim() }),
     }
     save.mutate(
@@ -130,6 +175,15 @@ function ModuleFormDialog({ module, open, onClose }) {
               <Input id={fid("order")} inputMode="numeric" value={values.displayOrder} onChange={set("displayOrder")} aria-invalid={!!errors.displayOrder} />
             </FormField>
           </div>
+          <ModulePermissionsField
+            idPrefix={prefix}
+            value={values.permissions}
+            error={errors.permissions}
+            onChange={(permissions) => {
+              setValues((v) => ({ ...v, permissions }))
+              setErrors((e) => ({ ...e, permissions: undefined }))
+            }}
+          />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" className="size-4 accent-primary" checked={values.isActive} onChange={set("isActive")} />
             Active (inactive modules are unavailable to every company)
@@ -197,6 +251,9 @@ export default function ModulesPage() {
   const [limit, setLimit] = useState(10)
   const [editing, setEditing] = useState(undefined) // undefined = closed, null = create, object = edit
   const [statusModule, setStatusModule] = useState(null)
+  const [viewing, setViewing] = useState(null)
+  const [deleting, setDeleting] = useState(null)
+  const remove = useDeleteModule()
   const debounced = useDebouncedValue(search.trim())
   const { data, isPending, isError, error, isFetching, isPlaceholderData, refetch } = useModuleList({ page, limit, search: debounced, status })
   const items = data?.items ?? []
@@ -206,7 +263,7 @@ export default function ModulesPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Modules</CardTitle>
-          <CardDescription>The DPDP modules of the platform. Add them to plans to give companies access.</CardDescription>
+          <CardDescription>The DPDP modules of the platform. Plans give companies their default modules; Company Access sets exactly which modules each company has.</CardDescription>
           <CardAction className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh">
               <RefreshCwIcon className={cn(isFetching && "animate-spin")} />
@@ -305,7 +362,9 @@ export default function ModulesPage() {
                           </div>
                         </TableCell>
                         <TableCell className="px-3 font-mono text-xs">{m.code}</TableCell>
-                        <TableCell className="px-3 tabular-nums">{m.display_order}</TableCell>
+                        <TableCell className="px-3 tabular-nums" data-testid="pages-count">
+                          {m.usage.pages}
+                        </TableCell>
                         <TableCell className="px-3 text-muted-foreground">
                           {m.usage.plans} plan{m.usage.plans === 1 ? "" : "s"}
                         </TableCell>
@@ -313,7 +372,10 @@ export default function ModulesPage() {
                           <PlanStatusBadge active={m.is_active} />
                         </TableCell>
                         <TableCell className="px-3">
-                          <div className="flex gap-1.5">
+                          <div className="flex flex-wrap gap-1.5">
+                            <Button variant="ghost" size="sm" onClick={() => setViewing(m.id)} aria-label={`View ${m.name}`}>
+                              View
+                            </Button>
                             <Button variant="outline" size="sm" onClick={() => setEditing(m)} aria-label={`Edit ${m.name}`}>
                               <PencilIcon />
                               Edit
@@ -325,6 +387,9 @@ export default function ModulesPage() {
                               aria-label={`${m.is_active ? "Deactivate" : "Activate"} ${m.name}`}
                             >
                               {m.is_active ? "Deactivate" : "Activate"}
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleting(m)} aria-label={`Delete ${m.name}`}>
+                              Delete
                             </Button>
                           </div>
                         </TableCell>
@@ -350,6 +415,39 @@ export default function ModulesPage() {
 
       {editing !== undefined && <ModuleFormDialog key={editing?.id ?? "new"} module={editing} open onClose={() => setEditing(undefined)} />}
       <StatusDialog module={statusModule} onClose={() => setStatusModule(null)} />
+      <ModuleDetailsSheet moduleId={viewing} onClose={() => setViewing(null)} />
+      <ConfirmationDialog
+        open={Boolean(deleting)}
+        title="Delete this module?"
+        description={
+          deleting && (
+            <>
+              <span className="font-medium text-foreground">
+                {deleting.name} ({deleting.code})
+              </span>
+              <br />
+              It disappears from every plan, company and the company app straight away. Its pages and history are kept, and its key stays
+              reserved. This cannot be undone from the panel.
+            </>
+          )
+        }
+        confirmLabel="Delete module"
+        variant="destructive"
+        pending={remove.isPending}
+        error={remove.error?.message}
+        onConfirm={() =>
+          remove.mutate(deleting.id, {
+            onSuccess: (response) => {
+              toast.add({ type: "success", title: response.message, description: deleting.name })
+              setDeleting(null)
+            },
+          })
+        }
+        onClose={() => {
+          remove.reset()
+          setDeleting(null)
+        }}
+      />
     </div>
   )
 }

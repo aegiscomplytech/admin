@@ -130,7 +130,7 @@ function SelectItem({
 
 function SelectSeparator({
   className,
-  ...props
+  ...props 
 }) {
   return (
     <SelectPrimitive.Separator
