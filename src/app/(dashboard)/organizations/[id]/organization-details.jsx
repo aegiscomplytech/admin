@@ -3,15 +3,20 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeftIcon, RefreshCwIcon } from "lucide-react"
+import { ArrowLeftIcon, PencilIcon, RefreshCwIcon } from "lucide-react"
 
+import { CompanyAdminsCard } from "@/components/organizations/company-admins-card"
+import { CompanyForm } from "@/components/organizations/company-form"
+import { CompanySetupChecklist } from "@/components/organizations/company-setup-checklist"
 import { OrganizationActionDialog } from "@/components/organizations/organization-action-dialog"
 import { EmailVerifiedBadge, OrganizationStatusBadge } from "@/components/organizations/status-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useOrganization } from "@/hooks/use-organizations"
+import { toast } from "@/components/ui/toast"
+import { useOrganization, useUpdateCompany } from "@/hooks/use-organizations"
 import { SELF_SERVICE_ACTOR, formatAuditAction } from "@/lib/audit"
 import { ORGANIZATION_ACTIONS, REGISTRATION_STATUS_LABELS } from "@/lib/organizations"
 import { cn, formatDateTime } from "@/lib/utils"
@@ -25,6 +30,42 @@ function Row({ label, children }) {
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-medium break-words">{children || "—"}</dd>
     </div>
+  )
+}
+
+/** Super Admin: edit the company's details (only changed fields are sent). */
+function EditCompanyDialog({ company, open, onClose }) {
+  const mutation = useUpdateCompany()
+  const update = { ...mutation, mutate: (input, options) => mutation.mutate({ id: company.id, input }, options) }
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !mutation.isPending) {
+          mutation.reset()
+          onClose()
+        }
+      }}
+    >
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit company details</DialogTitle>
+          <DialogDescription>{company.legal_name}</DialogDescription>
+        </DialogHeader>
+        {open && (
+          <CompanyForm
+            mode="edit"
+            company={company}
+            mutation={update}
+            onCancel={onClose}
+            onSaved={(response) => {
+              toast.add({ type: "success", title: response.message, description: response.data.legal_name })
+              onClose()
+            }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -46,6 +87,7 @@ export function OrganizationDetails() {
   const { id } = useParams()
   const { data: org, isPending, isError, error, isFetching, refetch } = useOrganization(id)
   const [action, setAction] = useState(null)
+  const [editing, setEditing] = useState(false)
 
   const back = (
     <Link href="/organizations" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "justify-self-start")}>
@@ -102,7 +144,13 @@ export function OrganizationDetails() {
             <OrganizationStatusBadge status={org.status} />
           </CardTitle>
           <CardDescription>{REGISTRATION_STATUS_LABELS[org.registration_status]}</CardDescription>
-          <CardAction className="flex gap-2">
+          <CardAction className="flex flex-wrap justify-end gap-2">
+            {org.actions.edit && (
+              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                <PencilIcon />
+                Edit details
+              </Button>
+            )}
             <Link href={`/organizations/${org.id}/modules`} className={buttonVariants({ variant: "outline", size: "sm" })}>
               Module access
             </Link>
@@ -136,6 +184,10 @@ export function OrganizationDetails() {
         </CardContent>
       </Card>
 
+      {["approved", "suspended"].includes(org.status) && <CompanySetupChecklist company={org} />}
+
+      <CompanyAdminsCard company={org} />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Company information">
           <Row label="Legal name">{org.legal_name}</Row>
@@ -153,6 +205,15 @@ export function OrganizationDetails() {
           <Row label="Address">{org.address}</Row>
           <Row label="City / State">{[org.city, org.state].filter(Boolean).join(", ")}</Row>
           <Row label="Country / Postal code">{[org.country, org.postal_code].filter(Boolean).join(" ")}</Row>
+          <Row label="Users / custom roles">
+            {org.counts && (
+              <span data-testid="company-counts">
+                {org.counts.users} user{org.counts.users === 1 ? "" : "s"} ({org.counts.active_users} active) · {org.counts.custom_roles} custom role
+                {org.counts.custom_roles === 1 ? "" : "s"}
+              </span>
+            )}
+          </Row>
+          <Row label="Created by">{org.created_by ? `${org.created_by.full_name} (Super Admin)` : "Self-registration"}</Row>
         </Section>
 
         <div className="grid content-start gap-4">
@@ -234,6 +295,7 @@ export function OrganizationDetails() {
       </Card>
 
       <OrganizationActionDialog organization={org} action={action} onClose={() => setAction(null)} />
+      <EditCompanyDialog company={org} open={editing} onClose={() => setEditing(false)} />
     </div>
   )
 }

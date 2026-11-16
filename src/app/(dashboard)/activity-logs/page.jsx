@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useAuditLogs } from "@/hooks/use-dashboard"
-import { SELF_SERVICE_ACTOR, formatAuditAction, formatAuditModule } from "@/lib/audit"
+import { formatAuditAction, formatAuditModule, selfServiceActor } from "@/lib/audit"
 import { cn, formatDateTime } from "@/lib/utils"
 
 const PAGE_SIZES = [10, 25, 50, 100]
@@ -226,7 +226,7 @@ export default function ActivityLogsPage() {
                               <span className="text-xs text-muted-foreground">{log.admin.email}</span>
                             </div>
                           ) : (
-                            <span className="text-muted-foreground">{SELF_SERVICE_ACTOR}</span>
+                            <span className="text-muted-foreground">{selfServiceActor(log.module)}</span>
                           )}
                         </TableCell>
                         <TableCell className="px-3">

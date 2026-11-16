@@ -7,6 +7,7 @@ import { OrganizationStatusBadge } from "@/components/organizations/status-badge
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { CompanyDashboard } from "@/components/company/company-dashboard"
 import { ModuleIcon } from "@/components/modules/module-icon"
 import { useCompanyMe, useRegistrationStatus, useResendVerification } from "@/hooks/use-company"
 import { useMyModules } from "@/hooks/use-modules"
@@ -89,8 +90,19 @@ function MyModules() {
   )
 }
 
+/**
+ * /company: the Company Admin dashboard for an active admin of an approved company; otherwise the registration
+ * status (pending verification / approval, rejected, suspended, deactivated).
+ */
 export default function CompanyHomePage() {
   const { data: me } = useCompanyMe()
+  const isActiveAdmin =
+    me?.organization.status === "approved" && me?.membership.status === "active" && me?.user.email_verified && ["owner", "organization_admin"].includes(me?.membership.role)
+  if (isActiveAdmin) return <CompanyDashboard />
+  return <RegistrationStatusView me={me} />
+}
+
+function RegistrationStatusView({ me }) {
   const { data, isPending, isError, error, refetch, isFetching } = useRegistrationStatus()
   const resend = useResendVerification()
 

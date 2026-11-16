@@ -11,6 +11,8 @@ import {
   UsersIcon,
 } from "lucide-react"
 
+import { ModuleAccessOverview } from "@/components/access/module-access-overview"
+import { UserStatsCards } from "@/components/users/user-stats-cards"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -108,6 +110,19 @@ export default function DashboardPage() {
           </CardAction>
         </CardHeader>
       </Card>
+
+      <div className="grid gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-medium">Registered users</h2>
+          <Link href="/users/pending" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            Review pending requests
+            <ArrowRightIcon />
+          </Link>
+        </div>
+        <UserStatsCards />
+      </div>
+
+      {data.module_access && <ModuleAccessOverview data={data.module_access} />}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Summary">
         <StatCard

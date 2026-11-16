@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Building2Icon, EyeIcon, RefreshCwIcon, SearchIcon } from "lucide-react"
+import { Building2Icon, EyeIcon, PlusIcon, RefreshCwIcon, SearchIcon } from "lucide-react"
 
 import { PaginationBar } from "@/components/data-tables/pagination-bar"
 import { OrganizationStatusBadge } from "@/components/organizations/status-badge"
@@ -47,11 +47,15 @@ export default function OrganizationsPage() {
         <CardHeader>
           <CardTitle className="text-lg">Companies</CardTitle>
           <CardDescription>All companies registered on the platform, newest first.</CardDescription>
-          <CardAction>
+          <CardAction className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCwIcon className={cn(isFetching && "animate-spin")} />
               Refresh
             </Button>
+            <Link href="/organizations/new" className={buttonVariants({ size: "sm" })}>
+              <PlusIcon />
+              Create company
+            </Link>
           </CardAction>
         </CardHeader>
 
